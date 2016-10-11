@@ -30,7 +30,7 @@ def parseArgs():
 def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
-    return tweepy.API(auth)
+    return tweepy.API(auth, compression=True, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 def fetch_tweets(api, twitter_handle, num_tweets):
     return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle).items(num_tweets)
