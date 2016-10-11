@@ -15,8 +15,10 @@ def parseArgs():
                         help='string representing the access token for your twitter app')
     parser.add_argument('access_token_secret', type=str,
                         help='string representing the access token secret for your twitter app')
+    parser.add_argument('twitter_handle', type=str,
+                        help='string representing the twitter handle whose data needs to be downloaded')
     args = parser.parse_args()
-    return args.consumer_key, args.consumer_secret, args.access_token, args.access_token_secret
+    return args.consumer_key, args.consumer_secret, args.access_token, args.access_token_secret, args.twitter_handle
 
 def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -24,12 +26,12 @@ def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     return tweepy.API(auth)
 
 def main():
-    consumer_key, consumer_secret, access_token, access_token_secret = parseArgs()
+    consumer_key, consumer_secret, access_token, access_token_secret, twitter_handle = parseArgs()
     api = makeApi(consumer_key, consumer_secret, access_token, access_token_secret)
 
-    public_tweets = api.home_timeline()
-    for tweet in public_tweets:
-        print tweet.text
+    tweets = api.user_timeline(screen_name=twitter_handle, count=200)
+    for tweet in tweets:
+        print tweet
 
 if __name__ == "__main__":
     main()
