@@ -33,7 +33,7 @@ def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     return tweepy.API(auth)
 
 def fetch_tweets(api, twitter_handle, num_tweets):
-    return api.user_timeline(screen_name=twitter_handle, count=num_tweets)
+    return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle).items(num_tweets)
 
 def toJson(tweets, fields, id_field):
     jsonTweets = []
