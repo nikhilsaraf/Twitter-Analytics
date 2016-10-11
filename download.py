@@ -25,13 +25,22 @@ def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     auth.set_access_token(access_token, access_token_secret)
     return tweepy.API(auth)
 
+def fetch_tweets(api, twitter_handle, num_tweets):
+    return api.user_timeline(screen_name=twitter_handle, count=num_tweets)
+
+def toJson(tweets, fields):
+    transform = lambda tweet : { field: getattr(tweet, field) for field in fields }
+    return list(map(transform, tweets))
+
 def main():
     consumer_key, consumer_secret, access_token, access_token_secret, twitter_handle = parseArgs()
     api = makeApi(consumer_key, consumer_secret, access_token, access_token_secret)
 
-    tweets = api.user_timeline(screen_name=twitter_handle, count=200)
-    for tweet in tweets:
-        print tweet
+    tweets = fetch_tweets(api, twitter_handle, 2)
+    fields = ['id', 'created_at', 'text', 'contributors', 'truncated', 'retweet_count', 'retweeted', 'in_reply_to_status_id', 'coordinates', 'source', 'in_reply_to_screen_name', 'in_reply_to_user_id', 'favorited', 'source_url', 'geo', 'in_reply_to_status_id_str', 'place']
+    for json in toJson(tweets, fields):
+        print json
+        print '------------------------------------------------'
 
 if __name__ == "__main__":
     main()
