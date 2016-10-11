@@ -41,6 +41,7 @@ def toJson(tweets, fields, id_field):
         json = { field : getattr(tweet, field) for field in fields if field is not id_field }
         json['_id'] = getattr(tweet, id_field)
         jsonTweets.append(json)
+        print 'converted ' + str(len(jsonTweets)) + ' tweets to json'
     return jsonTweets
 
 def main():
@@ -53,7 +54,10 @@ def main():
     tweets = fetch_tweets(api, twitter_handle, count)
     fields = ['created_at', 'text', 'contributors', 'truncated', 'retweet_count', 'retweeted', 'in_reply_to_status_id', 'coordinates', 'source', 'in_reply_to_screen_name', 'in_reply_to_user_id', 'favorited', 'source_url', 'geo', 'in_reply_to_status_id_str', 'place']
     jsonTweets = toJson(tweets, fields, 'id')
+    
+    print 'inserting ' + str(len(jsonTweets)) + ' tweets into mongo'
     collection.insert_many(jsonTweets)
+    print 'done'
 
 if __name__ == "__main__":
     main()
