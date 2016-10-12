@@ -35,8 +35,8 @@ def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
 def fetch_tweets(api, twitter_handle, num_tweets):
     return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle).items(num_tweets)
 
-# mapFields maps the value to the key field and removes the value from the json object
-def toJson(tweets, mapFields):
+# mapFields maps the value to the key field and removes the value from the json object, batchSize yields the values (list) in batches
+def toJsonYield(tweets, mapFields, batchSize):
     jsonTweets = []
     for tweet in tweets:
         json = tweet._json
@@ -44,8 +44,11 @@ def toJson(tweets, mapFields):
             json[key] = getattr(tweet, value)
             del json[value]
         jsonTweets.append(json)
-        print 'converted ' + str(len(jsonTweets)) + ' tweets to json'
-    return jsonTweets
+        if len(jsonTweets) % batchSize == 0:
+            yield jsonTweets
+            jsonTweets = []
+    if len(jsonTweets) > 0:
+        yield jsonTweets
 
 def main():
     consumer_key, consumer_secret, access_token, access_token_secret, twitter_handle, count, db_name, db_collection = parseArgs()
@@ -55,10 +58,12 @@ def main():
     collection = mongo[db_collection]
 
     tweets = fetch_tweets(api, twitter_handle, count)
-    jsonTweets = toJson(tweets, { '_id': 'id' })
-    
-    print 'inserting ' + str(len(jsonTweets)) + ' tweets into mongo'
-    collection.insert_many(jsonTweets)
+
+    batch_no = 0
+    for batch in toJsonYield(tweets, { '_id': 'id' }, 200):
+        print 'inserting batch number ' + str(batch_no) + ' into mongo of size: ' + str(len(batch))
+        collection.insert_many(batch)
+        batch_no += 1
     print 'done'
 
 if __name__ == "__main__":
