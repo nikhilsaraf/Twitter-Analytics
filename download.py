@@ -5,6 +5,8 @@
 import argparse
 import tweepy
 from pymongo import MongoClient, DESCENDING
+from pymongo.errors import BulkWriteError
+import pprint
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Downloads tweets for a user.')
@@ -61,6 +63,14 @@ def toJsonYield(tweets, mapFields, batchSize):
     if len(jsonTweets) > 0:
         yield jsonTweets
 
+def insertTweets(tweets, collection):
+    batch_no = 0
+    # override created_at so it pulls it from the python object which is a date and not a string
+    for batch in toJsonYield(tweets, { '_id': 'id', 'created_at': 'created_at' }, 200):
+        print 'inserting batch number ' + str(batch_no) + ' into mongo of size: ' + str(len(batch))
+        collection.insert_many(batch)
+        batch_no += 1
+
 def main():
     consumer_key, consumer_secret, access_token, access_token_secret, twitter_handle, count, db_name, db_collection = parseArgs()
     api = makeApi(consumer_key, consumer_secret, access_token, access_token_secret)
@@ -74,12 +84,12 @@ def main():
     print 'using since_id: ' + str(since_id)
     tweets = fetch_tweets(api, twitter_handle, count, since_id)
 
-    batch_no = 0
-    # override created_at so it pulls it from the python object which is a date and not a string
-    for batch in toJsonYield(tweets, { '_id': 'id', 'created_at': 'created_at' }, 200):
-        print 'inserting batch number ' + str(batch_no) + ' into mongo of size: ' + str(len(batch))
-        collection.insert_many(batch)
-        batch_no += 1
+    try:
+        insertTweets(tweets, collection)
+    except BulkWriteError as bwe:
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(bwe.details)
+        raise
     print 'done'
 
 if __name__ == "__main__":
