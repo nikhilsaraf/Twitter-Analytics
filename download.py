@@ -4,7 +4,7 @@
 
 import argparse
 import tweepy
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Downloads tweets for a user.')
@@ -32,9 +32,19 @@ def makeApi(consumer_key, consumer_secret, access_token, access_token_secret):
     auth.set_access_token(access_token, access_token_secret)
     return tweepy.API(auth, compression=True, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
-def fetch_tweets(api, twitter_handle, num_tweets):
-    return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle).items(num_tweets)
+def fetch_tweets(api, twitter_handle, num_tweets, since_id=None):
+    if since_id is None:
+        return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle, trim_user=1).items(num_tweets)
+    return tweepy.Cursor(api.user_timeline, screen_name=twitter_handle, trim_user=1, since_id=since_id).items(num_tweets)
 
+def computeSinceId(collection):
+    cursor = collection.find({}, ['_id', 'created_at']).sort([('created_at', DESCENDING)]).limit(1)
+    results = list(cursor)
+    print 'returned results: ' + str(results)
+    if len(results) == 0:
+        return None
+    return results[0]['_id']
+    
 # mapFields maps the value to the key field and removes the value from the json object, batchSize yields the values (list) in batches
 def toJsonYield(tweets, mapFields, batchSize):
     jsonTweets = []
@@ -58,7 +68,9 @@ def main():
     mongo = MongoClient()[db_name]
     collection = mongo[db_collection]
 
-    tweets = fetch_tweets(api, twitter_handle, count)
+    since_id = computeSinceId(collection)
+    print 'using since_id: ' + str(since_id)
+    tweets = fetch_tweets(api, twitter_handle, count, since_id)
 
     batch_no = 0
     # override created_at so it pulls it from the python object which is a date and not a string
