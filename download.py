@@ -41,8 +41,9 @@ def toJsonYield(tweets, mapFields, batchSize):
     for tweet in tweets:
         json = tweet._json
         for key, value in mapFields.iteritems():
-            json[key] = getattr(tweet, value)
+            # delete first for cases where we replace the item with the same key
             del json[value]
+            json[key] = getattr(tweet, value)
         jsonTweets.append(json)
         if len(jsonTweets) % batchSize == 0:
             yield jsonTweets
@@ -60,7 +61,8 @@ def main():
     tweets = fetch_tweets(api, twitter_handle, count)
 
     batch_no = 0
-    for batch in toJsonYield(tweets, { '_id': 'id' }, 200):
+    # override created_at so it pulls it from the python object which is a date and not a string
+    for batch in toJsonYield(tweets, { '_id': 'id', 'created_at': 'created_at' }, 200):
         print 'inserting batch number ' + str(batch_no) + ' into mongo of size: ' + str(len(batch))
         collection.insert_many(batch)
         batch_no += 1
