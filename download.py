@@ -68,6 +68,8 @@ def main():
     mongo = MongoClient()[db_name]
     collection = mongo[db_collection]
 
+    # ensures we have an index on the search criteria for computing since_id
+    collection.create_index([('created_at', DESCENDING)])
     since_id = computeSinceId(collection)
     print 'using since_id: ' + str(since_id)
     tweets = fetch_tweets(api, twitter_handle, count, since_id)
