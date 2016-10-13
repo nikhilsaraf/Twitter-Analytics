@@ -13,8 +13,8 @@ def timeSeries(values, title=None, xlabel='Time', ylabel='Value'):
         plt.title(title)
     axisNos = range(0, len(values));
     #axisTicks, labels = getAxisTicksDateLabels()
-    # width = 2
-    ax.bar(axisNos, values, 2, linewidth=0, color='red')
+    # width = 1
+    ax.bar(axisNos, values, 1, linewidth=0, color='red')
     #plt.xticks(axisTicks)
     # we want integers no the y axis, we want to have some space at the top, and we want 10 ticks
     _max = np.amax(values)
