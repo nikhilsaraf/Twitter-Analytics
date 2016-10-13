@@ -6,6 +6,8 @@
 
 import argparse
 from pymongo import MongoClient, ASCENDING
+from plotUtil import timeSeries
+import numpy as np
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Finds a good timing to tweet out a message based on the past history of retweets for the account.')
@@ -24,6 +26,18 @@ def ensureIndex(collection):
 def query(collection):
     return collection.find({"retweeted_status":{"$exists": 0}, "in_reply_to_status_id": None}, {'created_at': 1, '_id': 0, 'retweet_count': 1}).sort([('created_at', ASCENDING)])
 
+# returns the average value bucketed by hours in the day of week
+def byDowHour(tuples):
+    # by hour buckets: 7 days * 24 hours
+    byDowHour = [[] for x in range(7 * 24)]
+    for t in tuples:
+        weekday = t[0].weekday()
+        hour = t[0].hour
+        idx = weekday * 24 + hour
+        byDowHour[idx].append(t[1])
+    result = [ np.average(bucket) for bucket in byDowHour ]
+    return range(7 * 24), result
+
 def main():
     db_name, db_collection = parseArgs()
 
@@ -32,8 +46,14 @@ def main():
     ensureIndex(collection)
 
     cursor = query(collection)
-    for doc in cursor:
-        print doc
+    tuples = [(doc['created_at'], doc['retweet_count']) for doc in cursor]
+    _, valuesByDowHour = byDowHour(tuples)
+    nanFilteredByDowHour = []
+    for value in valuesByDowHour:
+        if np.isnan(value):
+            value = 0
+        nanFilteredByDowHour.append(value)
+    timeSeries(nanFilteredByDowHour, 'Retweets by hour in DOW (starts on Monday)', 'Hour', 'Num. Retweets')
 
 if __name__ == "__main__":
     main()
