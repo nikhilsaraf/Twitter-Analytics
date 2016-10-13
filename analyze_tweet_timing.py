@@ -53,6 +53,12 @@ def main():
         if np.isnan(value):
             value = 0
         nanFilteredByDowHour.append(value)
+
+    hour = 0
+    for value in nanFilteredByDowHour:
+        print 'hour: {}, value={}'.format(hour, value)
+        hour += 1
+
     timeSeries(nanFilteredByDowHour, 'Retweets by hour in DOW (starts on Monday)', 'Hour', 'Num. Retweets')
 
 if __name__ == "__main__":
